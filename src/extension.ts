@@ -1,26 +1,48 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
+import * as path from 'path';
 import * as vscode from 'vscode';
+import {
+	LanguageClient,
+	ServerOptions,
+	TransportKind,
+	LanguageClientOptions
+} from 'vscode-languageclient/node';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+
+let client: LanguageClient;
+
 export function activate(context: vscode.ExtensionContext) {
+	const serverModule = context.asAbsolutePath(
+		path.join('server', 'out', 'server.js')
+	);
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "gf-test" is now active!');
+	const serverOptions: ServerOptions = {
+		run: { module: serverModule, transport: TransportKind.ipc },
+		debug: {
+			module: serverModule,
+			transport: TransportKind.ipc,
+		}
+	};
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('gf-test.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from gf-test!');
-	});
+	const clientOptions: LanguageClientOptions = {
+		documentSelector: [{ scheme: 'file', language: 'vue' }],
+		synchronize: {
+			fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc')
+		}
+	};
 
-	context.subscriptions.push(disposable);
+	client = new LanguageClient(
+		'languageServerExample',
+		'Language Server Example',
+		serverOptions,
+		clientOptions
+	);
+
+	client.start();
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+	if (!client) {
+		return undefined;
+	}
+	return client.stop();
+}
